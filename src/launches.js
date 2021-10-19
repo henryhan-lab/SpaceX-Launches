@@ -1,7 +1,14 @@
-import React, { Component } from 'react';
+import React, { Component,useState } from 'react';
 import { gql, useQuery } from '@apollo/client';
 import Launch from './launch';
 import Box from '@mui/material/Box';
+import algoliasearch from 'algoliasearch/lite';
+import { BrowserRouter as Router } from 'react-router-dom';
+import Search from './search';
+
+import { InstantSearch, SearchBox, Hits } from 'react-instantsearch-dom';
+
+
 
 const GET_BIZ = gql`
 query que{
@@ -35,12 +42,39 @@ query que{
 }
 `;
 
+
+const filterPosts = (posts, query) => {
+  if (!query) {
+      return posts;
+  }
+
+  return posts.filter((post) => {
+      const postName = post.mission_name.toLowerCase() || post.site_name_long.toLowerCase();
+      return postName.includes(query);
+  });
+};
+
+
+
 const Launches = (props) => {
+
+  const { search } = window.location;
+  const query = new URLSearchParams(search).get('s');
+  const [searchQuery, setSearchQuery] = useState(query || '');
   const { loading, error, data } = useQuery(GET_BIZ);
   if (loading) return null;
   if (error) return `Error! ${error}`;
   const results = data.launches.filter(launch=>launch.details != null)
-  return (<Box m = "auto">{results.map(launch=>(
+  const filteredPosts = filterPosts(results, searchQuery);
+
+  return (<React.Fragment>
+  
+  <Search
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                />
+
+  <Box width = "800px" m = "auto">{filteredPosts.map(launch=>(
   <Launch details = {launch.details} 
   launch_date_utc = {launch.launch_date_utc}
   launch_site = {launch.launch_site.site_name_long}
@@ -49,8 +83,14 @@ const Launches = (props) => {
   article = {launch.links.article_link}
 
   >
-  </Launch>))}</Box>)
-  //<ul>{data.launchesPast.map(launch=><li>{launch.mission_name}</li>)}</ul>;
+  </Launch>))}</Box>
+
+
+
+
+  </React.Fragment>
+  )
+
 };
  
 export default Launches;
